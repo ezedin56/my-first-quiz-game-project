@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Game</title>
+    <style>
+        /* Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header, footer {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #4a6fa5;
+            color: white;
+            border-radius: 8px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        /* Screen Styles */
+        .screen {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Form Styles */
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #4a6fa5;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #3a5a80;
+        }
+
+        /* Quiz Info */
+        .quiz-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Question Styles */
+        #question-text {
+            margin-bottom: 20px;
+            min-height: 60px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .option-btn {
+            text-align: left;
+            padding: 12px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .option-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        .option-btn.correct {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .option-btn.incorrect {
+            background-color: #f44336;
+            color: white;
+        }
+
+        /* Next Button */
+        #next-btn {
+            margin-top: 20px;
+            display: block;
+            margin-left: auto;
+        }
+
+        /* Result Screen */
+        #result-screen {
+            text-align: center;
+        }
+
+        #final-score {
+            font-size: 24px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .quiz-info {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>General Knowledge Quiz</h1>
+        <p>Test your knowledge with these 10 questions!</p>
+    </header>
+
+    <main>
+        <div id="start-screen" class="screen">
+            <h2>Ready to begin?</h2>
+            <form id="player-form">
+                <label for="player-name">Enter your name:</label>
+                <input type="text" id="player-name" required minlength="2">
+                <button type="submit" id="start-btn">Start Quiz</button>
+            </form>
+        </div>
+
+        <div id="quiz-screen" class="screen hidden">
+            <div class="quiz-info">
+                <span id="player-display">Player: </span>
+                <span id="score">Score: 0</span>
+                <span id="question-count">Question: 1/10</span>
+            </div>
+            
+            <div id="question-container">
+                <h2 id="question-text">Question text goes here</h2>
+                <div id="options-container" class="options-grid"></div>
+            </div>
+            
+            <button id="next-btn" class="hidden">Next Question</button>
+        </div>
+
+        <div id="result-screen" class="screen hidden">
+            <h2>Quiz Completed!</h2>
+            <p id="final-score">Your final score: </p>
+            <button id="restart-btn">Take Quiz Again</button>
+        </div>
+    </main>
+
+    <footer>
+        <p>© 2025/2017 Quiz Game | Built with HTML, CSS & JavaScript</p>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const playerForm = document.getElementById('player-form');
+        const playerNameInput = document.getElementById('player-name');
+        const playerDisplay = document.getElementById('player-display');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const nextButton = document.getElementById('next-btn');
+        const scoreDisplay = document.getElementById('score');
+        const questionCountDisplay = document.getElementById('question-count');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-btn');
+
+        // Quiz Variables
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let playerName = '';
+        let selectedOption = null;
+
+        // Quiz questions array - contains all questions, options, and correct answers
+        const questions = [
+            {
+                question: "What is the capital of France?",
+                options: ["London", "Berlin", "Paris", "Madrid"],
+                answer: "Paris"
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                options: ["Venus", "Mars", "Jupiter", "Saturn"],
+                answer: "Mars"
+            },
+            {
+                question: "What is the largest mammal in the world?",
+                options: ["Elephant", "Blue Whale", "Giraffe", "Polar Bear"],
+                answer: "Blue Whale"
+            },
+            {
+                question: "Which element has the chemical symbol 'O'?",
+                options: ["Gold", "Oxygen", "Osmium", "Oganesson"],
+                answer: "Oxygen"
+            },
+            {
+                question: "Who painted the Mona Lisa?",
+                options: ["Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Michelangelo"],
+                answer: "Leonardo da Vinci"
+            },
+            {
+                question: "What is the hardest natural substance on Earth?",
+                options: ["Gold", "Iron", "Diamond", "Quartz"],
+                answer: "Diamond"
+            },
+            {
+                question: "Which country is home to the kangaroo?",
+                options: ["New Zealand", "South Africa", "Australia", "Brazil"],
+                answer: "Australia"
+            },
+            {
+                question: "How many continents are there on Earth?",
+                options: ["5", "6", "7", "8"],
+                answer: "7"
+            },
+            {
+                question: "What is the largest ocean on Earth?",
+                options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
+                answer: "Pacific Ocean"
+            },
+            {
+                question: "Which year did World War II end?",
+                options: ["1943", "1945", "1947", "1950"],
+                answer: "1945"
+            }
+        ];
+
+        // Event Listeners
+        playerForm.addEventListener('submit', startQuiz);
+        nextButton.addEventListener('click', showNextQuestion);
+        restartButton.addEventListener('click', restartQuiz);
+
+        // Start the quiz
+        function startQuiz(e) {
+            e.preventDefault();
+            
+            // Get player name and validate
+            playerName = playerNameInput.value.trim();
+            if (playerName.length < 2) {
+                alert('Please enter a valid name (at least 2 characters)');
+                return;
+            }
+
+            // Hide start screen and show quiz screen
+            startScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            
+            // Display player name
+            playerDisplay.textContent = `Player: ${playerName}`;
+            
+            // Load the first question
+            loadQuestion();
+        }
+
+        // Load a question
+        function loadQuestion() {
+            // Reset selected option
+            selectedOption = null;
+            
+            // Get current question
+            const currentQuestion = questions[currentQuestionIndex];
+            
+            // Update question text
+            questionText.textContent = currentQuestion.question;
+            
+            // Clear previous options
+            optionsContainer.innerHTML = '';
+            
+            // Create option buttons
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-btn');
+                button.addEventListener('click', () => selectOption(option, button));
+                optionsContainer.appendChild(button);
+            });
+            
+            // Hide next button
+            nextButton.classList.add('hidden');
+            
+            // Update question counter
+            questionCountDisplay.textContent = `Question: ${currentQuestionIndex + 1}/${questions.length}`;
+        }
+
+        // Handle option selection
+        function selectOption(selectedAnswer, button) {
+            // Disable all option buttons
+            const optionButtons = document.querySelectorAll('.option-btn');
+            optionButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.cursor = 'not-allowed';
+            });
+            
+            // Mark selected option
+            selectedOption = selectedAnswer;
+            const currentQuestion = questions[currentQuestionIndex];
+            
+            // Check if answer is correct
+            if (selectedAnswer === currentQuestion.answer) {
+                button.classList.add('correct');
+                score++;
+                scoreDisplay.textContent = `Score: ${score}`;
+            } else {
+                button.classList.add('incorrect');
+                // Highlight correct answer
+                optionButtons.forEach(btn => {
+                    if (btn.textContent === currentQuestion.answer) {
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+            
+            // Show next button
+            nextButton.classList.remove('hidden');
+        }
+
+        // Show next question or end quiz
+        function showNextQuestion() {
+            currentQuestionIndex++;
+            
+            if (currentQuestionIndex < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        // Show quiz results
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            
+            // Calculate percentage score
+            const percentage = Math.round((score / questions.length) * 100);
+            
+            // Display final score
+            finalScoreDisplay.textContent = `Your final score: ${score}/${questions.length} (${percentage}%)`;
+        }
+
+        // Restart the quiz
+        function restartQuiz() {
+            // Reset quiz variables
+            currentQuestionIndex = 0;
+            score = 0;
+            selectedOption = null;
+            
+            // Update displays
+            scoreDisplay.textContent = `Score: 0`;
+            
+            // Hide result screen and show start screen
+            resultScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            
+            // Clear player name input
+            playerNameInput.value = '';
+        }
+    </script>
+</body>
+</html>
